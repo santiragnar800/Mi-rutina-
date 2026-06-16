@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Coach Personal</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Rutina">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="manifest" id="manifest-placeholder">
+<script>
+// Inline manifest as blob
+const manifest={name:"Coach Personal — Plan de Potencial",short_name:"Mi Rutina",start_url:".",display:"standalone",background_color:"#0A0A0A",theme_color:"#0A0A0A",orientation:"portrait",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230A0A0A'/%3E%3Ctext x='256' y='320' font-size='280' text-anchor='middle' fill='%23C17A3A'%3E💪%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}]};
+const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+document.getElementById('manifest-placeholder').href=URL.createObjectURL(blob);
+// Apple touch icon inline
+const iconSvg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#0A0A0A"/><text x="256" y="320" font-size="280" text-anchor="middle" fill="#C17A3A">💪</text></svg>`;
+const iconBlob=new Blob([iconSvg],{type:'image/svg+xml'});
+const iconUrl=URL.createObjectURL(iconBlob);
+const link=document.createElement('link');link.rel='apple-touch-icon';link.href=iconUrl;document.head.appendChild(link);
+// Service Worker inline
+if('serviceWorker' in navigator){
+  const swCode=`
+self.addEventListener('install',e=>self.skipWaiting());
+self.addEventListener('activate',e=>clients.claim());
+self.addEventListener('fetch',e=>{
+  e.respondWith(caches.open('rutina-v1').then(cache=>
+    cache.match(e.request).then(r=>r||fetch(e.request).then(res=>{cache.put(e.request,res.clone());return res;}))
+  ).catch(()=>fetch(e.request)));
+});`;
+  const swBlob=new Blob([swCode],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0A0A0A;--surface:#111;--surface2:#181818;--border:#222;
+  --text:#E8E0D0;--text2:#888070;--text3:#444;
+  --accent:#C17A3A;--accent2:#8B3A3A;--green:#5A9A5A;--green-bg:#0A1A0A;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',sans-serif;max-width:480px;margin:0 auto;padding-bottom:120px}
+.header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:14px 16px 0}
+.hrow{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.hlabel{font-size:10px;letter-spacing:3px;color:var(--text3);font-family:monospace;margin-bottom:2px}
+.htitle{font-size:20px;font-weight:700}
+.pbadge{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:7px 12px;text-align:right}
+.ppct{font-size:22px;font-weight:700;color:var(--accent);line-height:1}
+.plabel{font-size:9px;color:var(--text3);letter-spacing:1px;font-family:monospace}
+.ptrack{height:2px;background:var(--surface2);border-radius:2px;margin-bottom:10px}
+.pfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .4s ease;width:0%}
+.drow{display:flex;gap:5px;overflow-x:auto;margin-bottom:8px;scrollbar-width:none;padding-bottom:2px}
+.drow::-webkit-scrollbar{display:none}
+.dbtn{flex:0 0 auto;padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text3);font-size:11px;cursor:pointer;font-family:monospace;text-align:center;transition:all .15s}
+.dbtn.active{border-color:var(--accent);background:#1A0F00;color:var(--accent)}
+.dicon{font-size:9px;margin-top:1px}
+.gbadge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:12px;color:var(--accent);display:flex;justify-content:space-between;align-items:center}
+.tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tbtn{flex:0 0 auto;padding:9px 10px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:10px;cursor:pointer;letter-spacing:.5px;font-family:monospace;transition:all .2s;white-space:nowrap}
+.tbtn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.content{padding:14px}
+.sec{margin-bottom:10px}
+.shead{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:11px;cursor:pointer;text-align:left;transition:all .2s}
+.shead.open{border-radius:12px 12px 0 0}
+.sicon{font-size:18px;flex-shrink:0}
+.smeta{flex:1}
+.stime{font-size:10px;letter-spacing:2px;font-family:monospace;margin-bottom:2px}
+.sname{font-size:13px;font-weight:700;color:var(--text)}
+.sright{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.scount{font-size:10px;color:var(--text3);font-family:monospace}
+.sarr{color:var(--text3);font-size:10px}
+.bcontainer{border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden}
+.blk{border-top:1px solid var(--border);overflow:hidden}
+.blk:first-child{border-top:none}
+.bhead{width:100%;padding:11px 13px;background:transparent;border:none;display:flex;align-items:center;gap:9px;cursor:pointer;text-align:left}
+.blk.done .bhead{background:#0A140A}
+.chk{width:21px;height:21px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--bg);transition:all .2s}
+.chk.on{background:var(--green);border-color:var(--green)}
+.bmeta{flex:1}
+.btitle{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.blk.done .btitle{color:#4A6A4A}
+.bdur{font-size:10px;color:var(--text3);font-family:monospace;margin-top:2px}
+.barr{color:var(--text3);font-size:10px;flex-shrink:0}
+.bdetail{padding:0 13px 13px 43px;display:none;border-top:1px solid var(--border)}
+.bdetail.open{display:block}
+.btext{font-size:13px;color:var(--text2);line-height:1.7;margin-top:11px;margin-bottom:9px}
+.tipbox{padding:9px 11px;background:#161208;border-radius:8px;border-left:3px solid var(--accent)}
+.tiplabel{font-size:9px;letter-spacing:2px;font-family:monospace;margin-bottom:3px}
+.tiptext{font-size:12px;color:#7A6A50;line-height:1.6}
+.gym-day{margin-bottom:16px}
+.gym-day-header{padding:11px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:8px}
+.gym-exercise{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:5px}
+.gym-ex-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.gym-ex-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.gym-ex-sets{font-size:11px;color:var(--accent);font-family:monospace;flex-shrink:0}
+.gym-ex-note{font-size:11px;color:var(--text3);margin-top:5px;line-height:1.5}
+.gym-ex-tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;margin-top:4px;font-family:monospace;letter-spacing:.5px}
+.tag-key{background:#1A0F00;color:#C17A3A;border:1px solid #3A2A10}
+.tag-new{background:#001A00;color:#5A9A5A;border:1px solid #1A3A1A}
+.gym-obj{font-size:11px;color:var(--text3);font-style:italic;padding:8px 13px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-top:6px}
+.gym-section-label{font-size:9px;letter-spacing:2px;color:var(--text3);font-family:monospace;padding:8px 0 4px;margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:11px}
+.card.green{background:var(--green-bg);border-color:#2A4A2A}
+.card.blue{background:#0A0A18;border-color:#2A2A4A}
+.card-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.card-icon{font-size:18px}
+.card-title{font-size:13px;font-weight:700}
+.card-body{font-size:13px;color:var(--text2);line-height:1.7}
+.card-note{margin-top:9px;padding:8px 10px;background:#161208;border-radius:6px;border-left:3px solid var(--accent);font-size:11px;color:#7A6A50;line-height:1.5}
+.stat-big{font-size:24px;font-weight:700;margin-bottom:3px}
+.stat-sub{font-size:13px;color:#4A7A4A}
+.stat-sub strong{color:#7DBA84}
+.sup-item{font-size:13px;color:#8080C0;margin-bottom:7px;line-height:1.5}
+.sup-item strong{color:#AAAAD0}
+.meal-day{margin-bottom:14px}
+.meal-day-title{font-size:12px;font-weight:700;letter-spacing:1px;font-family:monospace;padding:9px 13px;border-radius:9px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.meal-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 13px;margin-bottom:5px}
+.meal-name{font-size:10px;color:var(--text3);font-family:monospace;letter-spacing:1px;margin-bottom:4px}
+.meal-content{font-size:13px;color:var(--text2);line-height:1.5}
+.check-item{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.check-item.done-item{background:#0A140A;border-color:#2A4A2A}
+.ci-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--bg);transition:all .2s}
+.check-item.done-item .ci-check{background:var(--green);border-color:var(--green)}
+.ci-text{font-size:13px;color:var(--text);line-height:1.4}
+.check-item.done-item .ci-text{color:#4A6A4A}
+.prog-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:8px}
+.prog-label{font-size:10px;letter-spacing:2px;color:var(--accent);font-family:monospace;margin-bottom:6px}
+.prog-text{font-size:13px;color:var(--text2);line-height:1.6}
+.rir-box{background:#1A0F00;border:1px solid #3A2A10;border-radius:8px;padding:11px 13px;margin-top:10px}
+.rir-title{font-size:11px;color:var(--accent);font-family:monospace;letter-spacing:1px;margin-bottom:7px}
+.rir-row{font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.5}
+.presence-step{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.pstep-num{font-size:22px;font-weight:700;color:var(--accent);font-family:monospace;line-height:1;flex-shrink:0;width:28px}
+.pstep-body{}
+.pstep-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.pstep-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.reset-btn{display:block;width:100%;margin-top:18px;padding:11px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text3);font-size:11px;cursor:pointer;letter-spacing:1px;font-family:monospace}
+.compras-section{margin-bottom:14px}
+.compras-title{font-size:10px;letter-spacing:2px;color:var(--accent);font-family:monospace;margin-bottom:8px}
+.compras-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;font-size:13px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hrow">
+    <div>
+      <div class="hlabel">COACH PERSONAL</div>
+      <div class="htitle">Plan de Potencial</div>
+    </div>
+    <div class="pbadge">
+      <div class="ppct" id="pct">0%</div>
+      <div class="plabel">HOY</div>
+    </div>
+  </div>
+  <div class="ptrack"><div class="pfill" id="bar"></div></div>
+  <div class="drow" id="daysRow"></div>
+  <div class="gbadge">
+    <span>Hoy</span>
+    <span id="gymBadge" style="font-weight:700"></span>
+  </div>
+  <div class="tabs">
+    <button class="tbtn active" onclick="switchTab('rutina',this)">RUTINA</button>
+    <button class="tbtn" onclick="switchTab('gym',this)">GYM</button>
+    <button class="tbtn" onclick="switchTab('nutricion',this)">COMIDA</button>
+    <button class="tbtn" onclick="switchTab('presencia',this)">PRESENCIA</button>
+    <button class="tbtn" onclick="switchTab('imagen',this)">IMAGEN</button>
+    <button class="tbtn" onclick="switchTab('checklist',this)">CHECK</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- RUTINA -->
+<div id="tab-rutina">
+  <div id="scheduleContainer"></div>
+  <button class="reset-btn" onclick="resetDay()">↺ REINICIAR PROGRESO DE HOY</button>
+</div>
+
+<!-- GYM -->
+<div id="tab-gym" style="display:none">
+
+  <div class="prog-card">
+    <div class="prog-label">SISTEMA DE PROGRESIÓN — RIR</div>
+    <div class="prog-text">Cada semana: subí peso <strong style="color:var(--text)">o</strong> hacé 1 rep más. Sin progresión = sin cambio físico.</div>
+    <div class="rir-box">
+      <div class="rir-title">🎯 REPS EN RESERVA</div>
+      <div class="rir-row">✅ Terminás con <strong style="color:var(--text)">1–2 reps en el tanque</strong> → peso ideal</div>
+      <div class="rir-row">⬇️ Podías hacer 5 más → muy liviano, subí peso</div>
+      <div class="rir-row">⬆️ No llegaste al número → muy pesado, bajá</div>
+      <div class="rir-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #2A1A00">
+        <strong style="color:var(--accent)">Ejemplo press banca 4×6:</strong><br>
+        60kg → 6-6-5-4 ✅ perfecto<br>
+        60kg → 6-6-6-6 fácil → subí peso la próxima
+      </div>
+    </div>
+  </div>
+
+  <div class="prog-card">
+    <div class="prog-label">REFERENCIAS DE PESO</div>
+    <div class="prog-text">Empezá al <strong style="color:var(--text)">80%</strong> de lo que creés que podés.</div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin-top:10px">
+      <div style="display:flex;justify-content:space-between;padding:8px 11px;background:var(--surface2);border-radius:7px;font-size:13px"><span style="color:var(--text2)">Press banca</span><span style="color:var(--accent);font-family:monospace">50–70 kg</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 11px;background:var(--surface2);border-radius:7px;font-size:13px"><span style="color:var(--text2)">Sentadilla</span><span style="color:var(--accent);font-family:monospace">60–90 kg</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 11px;background:var(--surface2);border-radius:7px;font-size:13px"><span style="color:var(--text2)">Peso muerto</span><span style="color:var(--accent);font-family:monospace">70–110 kg</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 11px;background:var(--surface2);border-radius:7px;font-size:13px"><span style="color:var(--text2)">Press militar (actual)</span><span style="color:var(--accent);font-family:monospace">8 kg → progresando</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 11px;background:var(--surface2);border-radius:7px;font-size:13px"><span style="color:var(--text2)">Remo barra (actual)</span><span style="color:var(--accent);font-family:monospace">50 kg → progresando</span></div>
+    </div>
+  </div>
+
+  <!-- DIA 1 -->
+  <div class="gym-day">
+    <div class="gym-day-header" style="background:#1A0F00;color:#C17A3A;border:1px solid #3A2A10">🔵 DÍA 1 — UPPER · Fuerza + Base</div>
+    <div class="gym-section-label">PECHO & ESPALDA (FUERZA)</div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Press banca</span><span class="gym-ex-sets">4×6</span></div>
+      <div class="gym-ex-note">Fuerza base del pecho. Empezá al 80% de tu máximo.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Dominadas / Jalón al pecho</span><span class="gym-ex-sets">4×6-8</span></div>
+      <div class="gym-ex-note">Si no hacés dominadas aún, jalón con buen peso. Agarre prono, ancho.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Remo con barra</span><span class="gym-ex-sets">3×8</span></div>
+      <div class="gym-ex-note">50kg → 10,9,7. Mantené hasta hacer 3×10 limpio, luego subís.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Fondos en paralelas</span><span class="gym-ex-sets">3×8-10</span></div>
+      <div class="gym-ex-note">Actual: ~4 reps. Progresá 1 rep más por semana.</div>
+    </div>
+    <div class="gym-section-label">HOMBROS — TRAPECIO & DELTOIDES POST. <span class="gym-ex-tag tag-new">NUEVO</span></div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Press militar</span><span class="gym-ex-sets">3×6-8</span></div>
+      <div class="gym-ex-note">8kg → 14,13,10. Subí a 10kg cuando hagas 3×10 limpio.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Face pulls (polea alta con cuerda)</span><span class="gym-ex-sets">3×15</span></div>
+      <div class="gym-ex-tag tag-key">CLAVE POSTURA</div>
+      <div class="gym-ex-note">Polea a altura de cara. Tirás hacia vos con codos altos y abrís las manos al final. Trabaja deltoides posterior + rotadores externos. Previene lesiones de hombro.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Encogimientos con barra / mancuernas</span><span class="gym-ex-sets">3×12</span></div>
+      <div class="gym-ex-tag tag-new">NUEVO</div>
+      <div class="gym-ex-note">Trapecio superior. Subís los hombros directo hacia las orejas, sostenés 1 seg arriba. Sin rotar. Un trapecio definido enmarca el cuello y mejora la silueta de frente.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Wall slides</span><span class="gym-ex-sets">2×10</span></div>
+      <div class="gym-ex-tag tag-new">NUEVO</div>
+      <div class="gym-ex-note">De pie contra la pared, brazos en W (90°). Deslizás los brazos hacia arriba manteniendo contacto con la pared. Activa trapecio inferior y fija la escápula. Clave para la postura.</div>
+    </div>
+    <div class="gym-obj">👉 Objetivo: fuerza + masa base + hombros definidos</div>
+  </div>
+
+  <!-- DIA 2 -->
+  <div class="gym-day">
+    <div class="gym-day-header" style="background:#1A0000;color:#8B3A3A;border:1px solid #3A1A1A">🔴 DÍA 2 — LOWER · Piernas completas</div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Sentadilla</span><span class="gym-ex-sets">4×6</span></div>
+      <div class="gym-ex-note">El rey. Muslos paralelos al suelo mínimo. Espalda neutra.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Peso muerto rumano</span><span class="gym-ex-sets">3×8</span></div>
+      <div class="gym-ex-note">Bisagra de cadera, espalda recta. Sentís el estiramiento en isquios.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Zancadas</span><span class="gym-ex-sets">3×10 c/pierna</span></div>
+      <div class="gym-ex-note">Con mancuernas. Rodilla trasera casi toca el suelo.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Gemelos de pie</span><span class="gym-ex-sets">3×12-15</span></div>
+      <div class="gym-ex-note">Rango completo: bajá hasta sentir estiramiento, subí hasta punta máxima.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Core — rueda o plancha</span><span class="gym-ex-sets">3×</span></div>
+      <div class="gym-ex-note">Rueda: empezá de rodillas. Plancha: 30 seg con forma perfecta.</div>
+    </div>
+    <div class="gym-obj">👉 Piernas fuertes = mejor físico + mejor potencia en boxeo</div>
+  </div>
+
+  <!-- DIA 3 -->
+  <div class="gym-day">
+    <div class="gym-day-header" style="background:#001A00;color:#3A6B3A;border:1px solid #1A3A1A">🟢 DÍA 3 — UPPER · Estética + Volumen</div>
+    <div class="gym-section-label">PECHO & ESPALDA (VOLUMEN)</div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Press inclinado</span><span class="gym-ex-sets">4×8-10</span></div>
+      <div class="gym-ex-note">Más reps que el Día 1. Construye la parte alta del pecho.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Remo mancuerna</span><span class="gym-ex-sets">3×10</span></div>
+      <div class="gym-ex-note">Mano y rodilla apoyadas en banco. Codo pegado al cuerpo.</div>
+    </div>
+    <div class="gym-section-label">HOMBROS — DELTOIDES LATERAL & POSTERIOR <span class="gym-ex-tag tag-key">PRIORIDAD</span></div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Elevaciones laterales</span><span class="gym-ex-sets">4×12-15</span></div>
+      <div class="gym-ex-tag tag-key">CLAVE SILUETA</div>
+      <div class="gym-ex-note">Peso liviano, forma perfecta. Codos levemente doblados, subís hasta paralelo al suelo. Pausa 1 seg arriba. Es el ejercicio que más da ancho de hombros — tu prioridad estética número 1.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Vuelos posteriores / Reverse fly</span><span class="gym-ex-sets">3×15</span></div>
+      <div class="gym-ex-tag tag-new">NUEVO</div>
+      <div class="gym-ex-note">Con mancuernas, inclinado hacia adelante (o en polea baja). Abrís los brazos hacia atrás con codos levemente doblados. Trabaja deltoides posterior: mejora postura y da profundidad al hombro.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Elevaciones frontales alternas</span><span class="gym-ex-sets">3×10 c/brazo</span></div>
+      <div class="gym-ex-tag tag-new">NUEVO</div>
+      <div class="gym-ex-note">Mancuerna, levantás un brazo a la vez hasta la altura del hombro. Deltoides anterior. Complementa las laterales para un hombro redondeado completo.</div>
+    </div>
+    <div class="gym-section-label">BRAZOS</div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Curl bíceps</span><span class="gym-ex-sets">3×10-12</span></div>
+      <div class="gym-ex-note">Codo fijo, no balancees el cuerpo. Contracción completa arriba.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Tríceps polea</span><span class="gym-ex-sets">3×10-12</span></div>
+      <div class="gym-ex-note">Codos pegados al cuerpo durante todo el movimiento.</div>
+    </div>
+    <div class="gym-obj">👉 Acá construís el "look": hombros, brazos y definición</div>
+  </div>
+
+  <!-- DIA 4 -->
+  <div class="gym-day">
+    <div class="gym-day-header" style="background:#1A1200;color:#8B6A00;border:1px solid #3A2A00">🟡 DÍA 4 — LOWER · Potencia + Glúteo</div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Peso muerto convencional</span><span class="gym-ex-sets">4×5</span></div>
+      <div class="gym-ex-note">Pocas reps, peso máximo. El más completo. Espalda neutra siempre.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Hip thrust</span><span class="gym-ex-sets">3×8-10</span></div>
+      <div class="gym-ex-tag tag-key">CLAVE GLÚTEO</div>
+      <div class="gym-ex-note">Barra en caderas con almohadilla. Apretás glúteos arriba y sostenés 1 seg. El mejor ejercicio para glúteo. Subí peso rápido.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Prensa de piernas</span><span class="gym-ex-sets">3×10</span></div>
+      <div class="gym-ex-note">Pies altos y abiertos = glúteo. Pies bajos = cuádriceps.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Curl femoral (máquina)</span><span class="gym-ex-sets">3×10</span></div>
+      <div class="gym-ex-note">Isquios equilibran el cuádricep. Clave para no lesionarte en boxeo.</div>
+    </div>
+    <div class="gym-exercise">
+      <div class="gym-ex-top"><span class="gym-ex-name">Core — variante del Día 2</span><span class="gym-ex-sets">3×</span></div>
+      <div class="gym-ex-note">Si en Día 2 hiciste plancha → hacé rueda. Y viceversa.</div>
+    </div>
+    <div class="gym-obj">👉 Potencia explosiva — clave para el boxeo</div>
+  </div>
+
+</div>
+
+<!-- NUTRICION -->
+<div id="tab-nutricion" style="display:none">
+  <div class="card green">
+    <div style="font-size:10px;color:#7DBA84;letter-spacing:2px;font-family:monospace;margin-bottom:7px">OBJETIVO</div>
+    <div class="stat-big">72 kg → Volumen</div>
+    <div class="stat-sub">Proteína: <strong>130–150g/día</strong></div>
+    <div style="font-size:12px;color:#4A7A4A;margin-top:10px;line-height:1.7">
+      📊 Pesate 1×/semana (misma hora, mismo día):<br>
+      ↓ Bajás → comé más<br>
+      → Sin cambio 2-3 sem → aumentá porciones<br>
+      ↑ Subís muy rápido → bajá un poco
+    </div>
+  </div>
+
+  <div class="prog-card">
+    <div class="prog-label">AVENA + YOGUR</div>
+    <div class="prog-text">
+      Avena: 50-70g = 4-5 cucharadas soperas (1 cuch ≈ 10-15g)<br><br>
+      Yogur: natural entero sin azúcar · 200-250g por vez · 1-2x/día
+    </div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#1A0F00;color:#C17A3A;border:1px solid #3A2A10"><span>🟢 LUNES</span><span style="font-weight:400;font-size:10px">🏋️ Upper D1</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">3 huevos + avena con banana</div></div>
+    <div class="meal-row"><div class="meal-name">MEDIA MAÑANA</div><div class="meal-content">Yogurt natural + fruta</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Pollo + arroz + verduras</div></div>
+    <div class="meal-row"><div class="meal-name">POST GYM</div><div class="meal-content">Carne + papa</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">Omelette + pan</div></div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#1A0000;color:#8B3A3A;border:1px solid #3A1A1A"><span>🔵 MARTES</span><span style="font-weight:400;font-size:10px">🏋️ Lower D2</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">4 huevos + tostadas</div></div>
+    <div class="meal-row"><div class="meal-name">MEDIA MAÑANA</div><div class="meal-content">Sándwich de jamón y queso</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Carne + arroz</div></div>
+    <div class="meal-row"><div class="meal-name">POST GYM</div><div class="meal-content">Pollo + pasta</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">Yogurt + fruta + frutos secos</div></div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#001A00;color:#3A6B3A;border:1px solid #1A3A1A"><span>🔴 MIÉRCOLES</span><span style="font-weight:400;font-size:10px">🥊 Boxeo</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">Avena + huevos</div></div>
+    <div class="meal-row"><div class="meal-name">MEDIA MAÑANA</div><div class="meal-content">Yogurt</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Pollo + arroz</div></div>
+    <div class="meal-row"><div class="meal-name">PRE BOXEO</div><div class="meal-content">🍌 Banana (energía rápida)</div></div>
+    <div class="meal-row"><div class="meal-name">POST BOXEO</div><div class="meal-content">Carne + papa</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">2–3 huevos + pan</div></div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#1A1200;color:#8B6A00;border:1px solid #3A2A00"><span>🟡 JUEVES</span><span style="font-weight:400;font-size:10px">🏋️ Upper D3</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">3 huevos + avena</div></div>
+    <div class="meal-row"><div class="meal-name">MEDIA MAÑANA</div><div class="meal-content">Fruta + yogurt</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Carne + papa</div></div>
+    <div class="meal-row"><div class="meal-name">POST GYM</div><div class="meal-content">Pollo + arroz</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">Omelette + tostadas</div></div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#0D001A;color:#6A3A8B;border:1px solid #2A1A3A"><span>🟣 VIERNES</span><span style="font-weight:400;font-size:10px">🥊 Boxeo</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">Avena + huevos</div></div>
+    <div class="meal-row"><div class="meal-name">MEDIA MAÑANA</div><div class="meal-content">Sándwich simple</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Pollo + arroz</div></div>
+    <div class="meal-row"><div class="meal-name">PRE BOXEO</div><div class="meal-content">🍌 Banana</div></div>
+    <div class="meal-row"><div class="meal-name">POST BOXEO</div><div class="meal-content">Carne + pasta</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">Yogurt + fruta</div></div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#1A0A00;color:#C17A3A;border:1px solid #3A2010"><span>🟠 SÁBADO</span><span style="font-weight:400;font-size:10px">🏋️ Lower D4</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">4 huevos + tostadas</div></div>
+    <div class="meal-row"><div class="meal-name">MEDIA MAÑANA</div><div class="meal-content">Yogurt</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Carne + arroz</div></div>
+    <div class="meal-row"><div class="meal-name">POST GYM</div><div class="meal-content">Pollo + papa</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">Omelette</div></div>
+  </div>
+
+  <div class="meal-day">
+    <div class="meal-day-title" style="background:#111;color:#555;border:1px solid #222"><span>⚫ DOMINGO</span><span style="font-weight:400;font-size:10px">😴 Descanso</span></div>
+    <div class="meal-row"><div class="meal-name">DESAYUNO</div><div class="meal-content">Avena + huevos</div></div>
+    <div class="meal-row"><div class="meal-name">ALMUERZO</div><div class="meal-content">Carne + papa</div></div>
+    <div class="meal-row"><div class="meal-name">CENA</div><div class="meal-content">Algo más libre pero sin exagerar 🍕</div></div>
+  </div>
+
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:11px">
+    <div style="font-size:10px;color:var(--accent);letter-spacing:2px;font-family:monospace;margin-bottom:10px">🛒 LISTA DE COMPRAS</div>
+    <div class="compras-section">
+      <div class="compras-title">PROTEÍNAS</div>
+      <div class="compras-item">🍗 Pollo</div>
+      <div class="compras-item">🥩 Carne</div>
+      <div class="compras-item">🥚 Huevos</div>
+      <div class="compras-item">🥛 Yogurt natural entero sin azúcar</div>
+    </div>
+    <div class="compras-section">
+      <div class="compras-title">CARBOHIDRATOS</div>
+      <div class="compras-item">🍚 Arroz</div>
+      <div class="compras-item">🥔 Papa</div>
+      <div class="compras-item">🌾 Avena</div>
+      <div class="compras-item">🍞 Pan</div>
+      <div class="compras-item">🍝 Pasta</div>
+    </div>
+    <div class="compras-section">
+      <div class="compras-title">EXTRAS</div>
+      <div class="compras-item">🍌 Banana (clave pre-entreno)</div>
+      <div class="compras-item">🥦 Verduras variadas</div>
+      <div class="compras-item">🥜 Frutos secos (opcional)</div>
+    </div>
+  </div>
+
+  <div class="card blue">
+    <div style="font-size:10px;color:#7A7ABA;letter-spacing:2px;font-family:monospace;margin-bottom:10px">SUPLEMENTACIÓN</div>
+    <div class="sup-item"><strong>Creatina monohidrato</strong> — 3-5g/día con agua. Cualquier momento.</div>
+    <div class="sup-item"><strong>Omega 3</strong> — 2g/día. Antiinflamatorio + piel (útil con isotretinoína).</div>
+    <div class="sup-item"><strong>Proteína en polvo</strong> — Solo si no llegás a 130g/día con comida real.</div>
+  </div>
+</div>
+
+<!-- PRESENCIA -->
+<div id="tab-presencia" style="display:none">
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hdr"><span class="card-icon">🪞</span><span class="card-title">Rutina de Presencia — 5 min diarios</span></div>
+    <div class="card-body">Todos los días. Frente al espejo. Sin excusas. Es el entrenamiento de tu identidad.</div>
+  </div>
+
+  <div class="presence-step">
+    <div class="pstep-num">1</div>
+    <div class="pstep-body">
+      <div class="pstep-title">Postura — 1 minuto</div>
+      <div class="pstep-desc">Pecho arriba. Hombros atrás y abajo. Barbilla paralela al suelo. Mantené esta posición consciente 60 segundos. Sentís incómodo al principio → eso significa que tu postura habitual está mal.</div>
+    </div>
+  </div>
+
+  <div class="presence-step">
+    <div class="pstep-num">2</div>
+    <div class="pstep-body">
+      <div class="pstep-title">Contacto visual — 1 minuto</div>
+      <div class="pstep-desc">Mirás tus propios ojos en el espejo sin apartar la vista. Sin juzgar, sin sonreír forzado. Solo sostenés la mirada. Si te incomoda mirarte fijo → ahí está el trabajo. La mirada directa es el 50% de la presencia.</div>
+    </div>
+  </div>
+
+  <div class="presence-step">
+    <div class="pstep-num">3</div>
+    <div class="pstep-body">
+      <div class="pstep-title">Leer en voz alta — 1 minuto</div>
+      <div class="pstep-desc">Cualquier texto: apuntes, artículo, libro. Voz clara, ritmo normal, sin apurarte. Mejora dicción, velocidad de procesamiento y confianza vocal. Grabate de vez en cuando para notar la mejora.</div>
+    </div>
+  </div>
+
+  <div class="presence-step">
+    <div class="pstep-num">4</div>
+    <div class="pstep-body">
+      <div class="pstep-title">Explicar algo — 1 minuto</div>
+      <div class="pstep-desc">Elegís un tema que conozcas y lo explicás como si le hablaras a alguien. Ejemplo: "Cómo funciona una sucesión", "Qué es el RIR en el gym", "Por qué uso aceite de jojoba". Sin guión. Esto entrena el pensamiento verbal en tiempo real.</div>
+    </div>
+  </div>
+
+  <div class="presence-step">
+    <div class="pstep-num">5</div>
+    <div class="pstep-body">
+      <div class="pstep-title">Sonrisa natural — 1 minuto</div>
+      <div class="pstep-desc">No es sonreír forzado. Es encontrar la versión relajada y segura de tu expresión. Practicás distintos niveles: cara en reposo → leve sonrisa → sonrisa completa. Encontrás cuál se siente auténtica y la hacés tuya.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:6px">
+    <div class="card-hdr"><span class="card-icon">🎤</span><span class="card-title">Video diario de WhatsApp</span></div>
+    <div class="card-body">1 video de ≈1 minuto sobre cualquier tema. Lo mirás inmediatamente. Anotás 1 cosa a mejorar. Hacelo después de la rutina de presencia mientras ya estás "en modo".</div>
+    <div class="card-note">La vergüenza de verte ES el punto. Los primeros 30 videos cambian más que cualquier curso de oratoria.</div>
+  </div>
+
+</div>
+
+<!-- IMAGEN -->
+<div id="tab-imagen" style="display:none">
+  <div class="card">
+    <div class="card-hdr"><span class="card-icon">🍂</span><span class="card-title">Colorimetría: Otoño Oscuro</span></div>
+    <div class="card-body">Paleta: terracota, camel, verde oliva, mostaza, borgoña, marrón. Negro perfecto. Evitá rosa pastel, celeste bebé, neón — apagan tu tono de piel oliva.</div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-icon">👕</span><span class="card-title">Ropa: Dark Casual Elevado</span></div>
+    <div class="card-body">Jeans slim o tapered. Remeras oversized de calidad. Buzos crewneck como el negro que usás — perfecto. Evitá ropa sin estructura: la silueta es tu herramienta.</div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-icon">✂️</span><span class="card-title">Corte de pelo</span></div>
+    <div class="card-body">El flequillo te favorece. Wolf cut más definido con curtain bangs. Más volumen arriba, más largo atrás, flequillo partido al medio o levemente al costado. Equilibra la asimetría de forma natural.</div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-icon">🎯</span><span class="card-title">Asimetría facial</span></div>
+    <div class="card-body">100% normal. Más tiempo de gua sha en el lado más tenso. Chin tucks bilaterales. El corte de pelo ya hace el 70% del trabajo visual.</div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-icon">👁️</span><span class="card-title">Expresión y presencia</span></div>
+    <div class="card-body">Rasgos intensos: cejas densas, mirada profunda. Cara en reposo segura: mandíbula relajada, labios juntos, mirada directa. En fotos: leve inclinación a 3/4, nunca de frente plana.</div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-icon">💧</span><span class="card-title">Piel — Isotretinoína</span></div>
+    <div class="card-body">Limpiador suave sin sulfatos + hidratante con ceramidas + SPF 50 todos los días. Vaselina en labios de noche. Aceite de jojoba: no comedogénico, ideal con el tratamiento.</div>
+  </div>
+</div>
+
+<!-- CHECKLIST -->
+<div id="tab-checklist" style="display:none">
+  <div id="checklistContainer"></div>
+  <button class="reset-btn" onclick="resetChecklist()">↺ REINICIAR CHECKLIST</button>
+</div>
+
+</div>
+
+<script>
+const DAYS=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const GYM={"Lun":"🏋️ Upper D1","Mar":"🏋️ Lower D2","Mié":"🥊 Boxeo","Jue":"🏋️ Upper D3","Vie":"🥊 Boxeo","Sáb":"🏋️ Lower D4","Dom":"😴 Descanso"};
+const CHECKLIST=[
+  {id:"comida",text:"Comí 4 veces mínimo",icon:"🍽️"},
+  {id:"entrenamiento",text:"Entrené (gym o boxeo)",icon:"💪"},
+  {id:"agua",text:"Tomé 2L+ de agua",icon:"💧"},
+  {id:"sueno",text:"Dormí 7h+ la noche pasada",icon:"😴"},
+  {id:"noimprovisé",text:"No improvisé — seguí el plan",icon:"📋"},
+  {id:"proteina",text:"Llegué a 130g+ de proteína",icon:"🥩"},
+  {id:"creatina",text:"Tomé creatina",icon:"⚡"},
+  {id:"presencia",text:"Hice la rutina de presencia (5 min)",icon:"🪞"},
+  {id:"masaje",text:"Masaje facial / gua sha",icon:"🧴"},
+  {id:"postura",text:"Chin tucks del día",icon:"🎯"},
+  {id:"ingles",text:"30 min de inglés pasivo",icon:"🎧"},
+  {id:"video",text:"Grabé mi video de oratoria",icon:"🎤"},
+  {id:"preparacion",text:"Preparé todo para mañana",icon:"✅"},
+];
+const SCHEDULE=[
+  {id:"despertar",time:"08:00–08:10",label:"DESPERTAR",icon:"🌅",color:"#C17A3A",blocks:[
+    {title:"Agua con limón / sal rosada",dur:"2 min",detail:"500ml de agua apenas te levantás. Lleva 8h sin hidratación. Activa el metabolismo. Dejá el vaso preparado la noche anterior.",tip:"La deshidratación matutina sube el cortisol. Hidratarte primero lo baja antes de que empiece el día."},
+    {title:"Hielo en la cara",dur:"3 min",detail:"Cubo en paño fino. Frente → pómulos → mandíbula → cuello. 10-15 seg por zona. Reduce puffiness y define contorno mandibular.",tip:"En el lado más 'cargado' de tu cara, empezá por ahí."},
+    {title:"Respiración diafragmática",dur:"5 min",detail:"Acostado. Mano en pecho (quieta), mano en panza (sube y baja). Inhalá 4 → retené 4 → exhalá 6 seg. 15-20 ciclos.",tip:"Si el pecho sube antes que la panza, tenés respiración torácica — corrígela conscientemente cada mañana."}
+  ]},
+  {id:"minirutina",time:"08:10–08:25",label:"MINI RUTINA CORPORAL",icon:"💪",color:"#8B3A3A",blocks:[
+    {title:"Puente de glúteos — 15 reps",dur:"2 min",detail:"Boca arriba, rodillas flexionadas. Cadera arriba → apretás glúteos → 3 seg → bajás lento. Activa circulación pélvica.",tip:"Si un glúteo trabaja más, hacé 10 reps unilaterales por lado."},
+    {title:"Kegel masculino — 3×10",dur:"2 min",detail:"Contraé el músculo para frenar el pis → 3-5 seg → relajás completamente. Relajación = igual de importante que la contracción.",tip:"No lo hagas mientras orinás. En ayunas cada mañana crea el hábito rápido."},
+    {title:"Plancha — 2×30 seg",dur:"2 min",detail:"Cuerpo recto, abdomen y glúteos apretados. 30 seg → 20 seg descanso → repetís.",tip:"20 seg perfectos > 60 seg con caderas caídas."},
+    {title:"Psoas + Sentadilla profunda",dur:"3 min",detail:"Psoas: zancada, rodilla en suelo, empujás cadera sin arquear. 30 seg/lado. Luego sentadilla profunda 1 min respirando.",tip:"Psoas tenso = postura encorvada = proyectás menos presencia."}
+  ]},
+  {id:"cuello",time:"08:25–08:45",label:"CUELLO, CARA & POSTURA",icon:"🎯",color:"#3A6B3A",blocks:[
+    {title:"Chin tucks — 3×10",dur:"2 min",detail:"Mentón hacia atrás (doble mentón consciente), sostenés 5 seg. Corrige postura del cuello y mejora línea de mandíbula.",tip:"Hacelo contra la pared: la cabeza debería tocarla. Si no llega = cabeza adelantada."},
+    {title:"Curl + extensiones cuello + lateral banda",dur:"4 min",detail:"Curl boca arriba (15 reps). Extensiones boca abajo (15 reps). Lateral con banda: 10 reps/lado. Entrena el cuello visualmente.",tip:"Cuello definido encuadra la cara. A tu estructura ósea le sienta muy bien."},
+    {title:"Hipopresivos — 5-6 rep",dur:"5 min",detail:"De pie, inclinado. Exhalás todo y sin inhalar abrís las costillas (apnea) 10-15 seg. Activa core profundo.",tip:"En ayunas o 2h después de comer. Al principio marteás — normal."},
+    {title:"Gua sha + aceite de jojoba",dur:"5 min",detail:"3-4 gotas de aceite. Gua sha arriba y afuera: mentón → pómulos → frente. Mandíbula en circular. Drena linfa.",tip:"Siempre dirección arriba-afuera. Trabajá más el lado más caído."}
+  ]},
+  {id:"estudio",time:"09:00–09:30",label:"ESTUDIO TÉCNICO",icon:"📚",color:"#3A3A8B",blocks:[
+    {title:"Bloque de estudio — 25 min activos",dur:"30 min",detail:"Celular en modo avión. Pomodoro: 25 min estudio + 5 min pausa. La tarea más difícil primero.",tip:"Solo te comprometés a abrir el libro y leer 1 página. Generalmente seguís."}
+  ]},
+  {id:"presenciadiaria",time:"Mañana o tarde",label:"RUTINA DE PRESENCIA",icon:"🪞",color:"#6B3A8B",blocks:[
+    {title:"5 pasos frente al espejo",dur:"5 min",detail:"1) Postura (pecho arriba, hombros atrás) · 2) Contacto visual contigo mismo · 3) Leer en voz alta · 4) Explicar algo sin guión · 5) Sonrisa natural. 1 minuto cada paso.",tip:"Hacelo después del desayuno o antes de salir. Es el entrenamiento de tu identidad, tan importante como el gym."}
+  ]},
+  {id:"gym",time:"10:00–11:30",label:"ENTRENAMIENTO",icon:"🏋️",color:"#8B6A00",blocks:[
+    {title:"Lun → Upper D1 (Fuerza + Hombros)",dur:"70-80 min",detail:"Press banca 4×6 · Dominadas/jalón 4×6-8 · Remo barra 3×8 · Fondos 3×8-10 · Press militar 3×6-8 · Face pulls 3×15 · Encogimientos 3×12 · Wall slides 2×10.",tip:"Face pulls y encogimientos son NUEVOS — priorizalos. Transforman la silueta de hombros y cuello."},
+    {title:"Mar → Lower D2 (Piernas completas)",dur:"70 min",detail:"Sentadilla 4×6 · Peso muerto rumano 3×8 · Zancadas 3×10 c/lado · Gemelos 3×12-15 · Core 3×.",tip:"Profundidad en sentadilla: muslos paralelos al suelo mínimo."},
+    {title:"Jue → Upper D3 (Estética + Deltoides)",dur:"70-80 min",detail:"Press inclinado 4×8-10 · Remo mancuerna 3×10 · Elevaciones laterales 4×12-15 · Vuelos posteriores 3×15 · Elevaciones frontales alternas 3×10 c/brazo · Curl 3×10-12 · Tríceps polea 3×10-12.",tip:"Elevaciones laterales: tu ejercicio de silueta número 1. Peso liviano, pausa arriba, forma perfecta."},
+    {title:"Sáb → Lower D4 (Potencia + Glúteo)",dur:"70 min",detail:"Peso muerto 4×5 · Hip thrust 3×8-10 · Prensa 3×10 · Curl femoral 3×10 · Core 3×.",tip:"El hip thrust es el que más transforma la parte posterior. Subí peso rápido."},
+    {title:"Mié / Vie → Boxeo",dur:"60 min",detail:"Llegá 10 min antes para calentar cuello y hombros. Boxeo = cardio + coordinación + core + confianza + lenguaje corporal.",tip:"Grabate en combina de vez en cuando. Ver tu movimiento acelera la mejora."},
+    {title:"Dom → Descanso activo",dur:"30 min",detail:"Caminata o movilidad suave. No inactividad total.",tip:"Aprovechá para dejar la ropa del gym de la semana lista."},
+    {title:"Post-entreno: ventana nutricional",dur:"inmediato",detail:"30-60 min post gym: proteína + carbohidrato. No pierdas esta ventana.",tip:"Creatina en cualquier momento del día con agua — no necesita ser exactamente post-gym."}
+  ]},
+  {id:"estiramientos",time:"12:00–12:15",label:"ESTIRAMIENTOS DIARIOS",icon:"🧘",color:"#5A3A6B",blocks:[
+    {title:"Colgarse de barra — 3×30 seg",dur:"3 min",detail:"Relajás hombros completamente. Descomprime columna.",tip:"Marco de puerta reforzado si no tenés barra en casa."},
+    {title:"Gato-vaca — 15 reps",dur:"2 min",detail:"En cuatro apoyos. Gato: espalda al techo. Vaca: panza al suelo. Coordinado con la respiración.",tip:"Inhalás en vaca, exhalás en gato."},
+    {title:"Cobra + Isquiotibiales",dur:"5 min",detail:"Cobra: boca abajo, levantás torso, 3×30 seg. Isquio: pierna en silla, torso inclinado recto, 2×30 seg/pierna.",tip:"Isquios cortos = pelvis inclinada = postura encorvada. Directo a tu presencia física."}
+  ]},
+  {id:"noche",time:"21:00–22:00",label:"CIERRE NOCTURNO",icon:"🌙",color:"#1A4A6B",blocks:[
+    {title:"Inglés pasivo — 30 min",dur:"30 min",detail:"YouTube/podcast en inglés sobre legal tech, business o real estate. Podés hacerlo mientras comés.",tip:"Legal Eagle, How Money Works, Lex Fridman. Subtítulos en inglés, no en español."},
+    {title:"Video de WhatsApp — oratoria",dur:"5 min",detail:"1 video de ≈1 min sobre cualquier tema. Lo mirás inmediatamente. 1 cosa a mejorar.",tip:"La vergüenza de verte ES el punto. 30 videos > cualquier curso de oratoria."},
+    {title:"Masaje maseteros + hioides",dur:"5 min",detail:"Maseteros: circular en mandíbula, 2 min. Hioides: presión suave bajo el mentón, 2 min.",tip:"Si apretás los dientes de noche, este masaje es prioritario."},
+    {title:"Erectores espinales — Superman 3×10",dur:"3 min",detail:"Boca abajo, levantás brazos y piernas, sostenés 3 seg. Si ya hiciste gym fuerte, 1 serie suave.",tip:"Fortalece espalda baja y protege la columna lumbar."},
+    {title:"Preparación para mañana",dur:"5 min",detail:"Ropa del gym lista. Vaso de agua en la mesa de noche. Libro abierto en la página de mañana.",tip:"La procrastinación vive en la fricción inicial. Estos 3 actos la eliminan."},
+    {title:"Dormir 8 horas — pantallas off",dur:"8 horas",detail:"30 min antes: sin pantallas. Sueño = HGH + recuperación muscular + memoria. Vaselina en labios (isotretinoína).",tip:"Nada de lo que hacés durante el día funciona bien sin el sueño."}
+  ]}
+];
+
+// --- STATE con localStorage ---
+function load(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+let currentDay=load('currentDay','Lun');
+let completed=load('completed',{});
+let openSections=load('openSections',{});
+let openBlocks=load('openBlocks',{});
+let checkDone=load('checkDone',{});
+
+function getTotalBlocks(){return SCHEDULE.reduce((a,s)=>a+s.blocks.length,0);}
+function getCompleted(){return Object.values(completed).filter(Boolean).length;}
+function updateProgress(){
+  const pct=Math.round((getCompleted()/getTotalBlocks())*100);
+  document.getElementById('pct').textContent=pct+'%';
+  document.getElementById('pct').style.color=pct>50?'#7DBA84':'#C17A3A';
+  document.getElementById('bar').style.width=pct+'%';
+}
+function renderDays(){
+  const row=document.getElementById('daysRow');row.innerHTML='';
+  DAYS.forEach(day=>{
+    const btn=document.createElement('button');
+    btn.className='dbtn'+(day===currentDay?' active':'');
+    btn.innerHTML=`<div>${day}</div><div class="dicon">${GYM[day].split(' ')[0]}</div>`;
+    btn.onclick=()=>{currentDay=day;save('currentDay',currentDay);renderDays();document.getElementById('gymBadge').textContent=GYM[day];};
+    row.appendChild(btn);
+  });
+  document.getElementById('gymBadge').textContent=GYM[currentDay];
+}
+function renderSchedule(){
+  const c=document.getElementById('scheduleContainer');c.innerHTML='';
+  SCHEDULE.forEach(sec=>{
+    const done=sec.blocks.filter((_,i)=>completed[`${sec.id}-${i}`]).length;
+    const isOpen=openSections[sec.id];
+    const div=document.createElement('div');div.className='sec';
+    div.innerHTML=`
+      <button class="shead${isOpen?' open':''}" onclick="toggleSec('${sec.id}')" style="border-color:${isOpen?sec.color:'var(--border)'};background:${isOpen?sec.color+'18':'var(--surface)'}">
+        <span class="sicon">${sec.icon}</span>
+        <div class="smeta"><div class="stime" style="color:${sec.color}">${sec.time}</div><div class="sname">${sec.label}</div></div>
+        <div class="sright"><div class="scount">${done}/${sec.blocks.length}</div><div class="sarr">${isOpen?'▲':'▼'}</div></div>
+      </button>
+      ${isOpen?renderBlocks(sec):''}
+    `;
+    c.appendChild(div);
+  });
+}
+function renderBlocks(sec){
+  let h='<div class="bcontainer">';
+  sec.blocks.forEach((b,i)=>{
+    const key=`${sec.id}-${i}`,done=completed[key],open=openBlocks[key];
+    h+=`<div class="blk${done?' done':''}">
+      <div class="bhead" onclick="toggleBlk('${key}')">
+        <button class="chk${done?' on':''}" onclick="event.stopPropagation();toggleCheck('${key}')">${done?'✓':''}</button>
+        <div class="bmeta"><div class="btitle">${b.title}</div><div class="bdur">⏱ ${b.dur}</div></div>
+        <div class="barr">${open?'▲':'▼'}</div>
+      </div>
+      <div class="bdetail${open?' open':''}">
+        <p class="btext">${b.detail}</p>
+        <div class="tipbox"><div class="tiplabel" style="color:${sec.color}">TIP DE TU COACH</div><div class="tiptext">${b.tip}</div></div>
+      </div>
+    </div>`;
+  });
+  return h+'</div>';
+}
+function toggleSec(id){openSections[id]=!openSections[id];save('openSections',openSections);renderSchedule();}
+function toggleBlk(key){openBlocks[key]=!openBlocks[key];save('openBlocks',openBlocks);renderSchedule();}
+function toggleCheck(key){completed[key]=!completed[key];save('completed',completed);updateProgress();renderSchedule();}
+function resetDay(){if(confirm('¿Reiniciar progreso de hoy?')){completed={};openSections={};openBlocks={};save('completed',completed);save('openSections',openSections);save('openBlocks',openBlocks);updateProgress();renderSchedule();}}
+function renderChecklist(){
+  const c=document.getElementById('checklistContainer');c.innerHTML='';
+  const cnt=CHECKLIST.filter(i=>checkDone[i.id]).length;
+  const sum=document.createElement('div');
+  sum.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center';
+  sum.innerHTML=`<span style="font-size:11px;color:var(--text3);font-family:monospace;letter-spacing:1px">COMPLETADO HOY</span><span style="font-size:22px;font-weight:700;color:${cnt===CHECKLIST.length?'#7DBA84':'var(--accent)'}">${cnt}/${CHECKLIST.length}</span>`;
+  c.appendChild(sum);
+  CHECKLIST.forEach(item=>{
+    const done=checkDone[item.id];
+    const div=document.createElement('div');
+    div.className='check-item'+(done?' done-item':'');
+    div.onclick=()=>{checkDone[item.id]=!checkDone[item.id];save('checkDone',checkDone);renderChecklist();};
+    div.innerHTML=`<div class="ci-check">${done?'✓':''}</div><div class="ci-text">${item.icon} ${item.text}</div>`;
+    c.appendChild(div);
+  });
+}
+function resetChecklist(){if(confirm('¿Reiniciar checklist?')){checkDone={};save('checkDone',checkDone);renderChecklist();}}
+function switchTab(tab,btn){
+  ['rutina','gym','nutricion','presencia','imagen','checklist'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='checklist')renderChecklist();
+}
+renderDays();renderSchedule();updateProgress();
+</script>
+</body>
+</html>
